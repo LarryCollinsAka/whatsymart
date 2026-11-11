@@ -1,0 +1,33 @@
+{
+  "name": "WhatsyMart - Marché & Livraison Express",
+  "short_name": "WhatsyMart",
+  "description": "Vos courses du marché et produits favoris livrés rapidement chez vous. Commande directe via WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f4c35",
+  "theme_color": "#0f4c35",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explorer",
+      "url": "/products",
+      "description": "Découvrir tous les produits"
+    },
+    {
+      "name": "Mes Commandes",
+      "url": "/account/orders",
+      "description": "Suivre mes commandes"
+    },
+    {
+      "name": "Boîte à Idées",
+      "url": "/suggestions",
+      "description": "Suggérer une amélioration"
+    }
+  ]
+}

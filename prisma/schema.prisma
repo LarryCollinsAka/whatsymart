@@ -1,0 +1,1772 @@
+// WhatsyMart — Prisma Schema
+// Enterprise multi-vendor marketplace with multi-business, multi-branch operations
+// Multilingual (English primary, French, Spanish, Portuguese, Dutch, scalable to any locale)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  STORE_MANAGER
+  CUSTOMER_SUPPORT
+  SELLER
+  CUSTOMER
+  DELIVERY_PARTNER
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PayoutMethod {
+  BANK_TRANSFER
+  WISE
+  CRYPTO_USDT
+  GREY
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  PAID
+  REJECTED
+  FAILED
+}
+
+enum LedgerType {
+  SALE_CREDIT
+  PLATFORM_FEE_DEBIT
+  PAYOUT_DEBIT
+  REFUND_DEBIT
+  ADJUSTMENT
+}
+
+enum OrderStatus {
+  PENDING
+  PENDING_VERIFICATION
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  BANK_TRANSFER
+  MOBILE_MONEY
+  MTN_MOMO
+  ORANGE_MONEY
+  CASH_ON_DELIVERY
+  CASH_ON_PICKUP
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  PENDING_VERIFICATION
+  REFUNDED
+  FAILED
+}
+
+enum ProductBadge {
+  ELITE
+  NEW
+  PROMO
+  LOW_STOCK
+  VERIFIED
+}
+
+enum SuggestionCategory {
+  FEATURE_REQUEST
+  UX_FEEDBACK
+  PRICING
+  SELLER_TOOLS
+  OTHER
+}
+
+enum SuggestionStatus {
+  NEW
+  REVIEWED
+  PLANNED
+  IMPLEMENTED
+  DECLINED
+}
+
+enum ReportType {
+  SELLER
+  PRODUCT
+  USER
+  ORDER
+}
+
+enum TargetType {
+  SELLER
+  PRODUCT
+  USER
+  ORDER
+}
+
+enum ReportReason {
+  FRAUD
+  COUNTERFEIT
+  HARASSMENT
+  WRONG_ITEM
+  PROHIBITED
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum BusinessCapability {
+  RETAIL
+  RESTAURANT
+  WHOLESALE
+}
+
+enum BusinessMemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+  CASHIER
+  INVENTORY_MANAGER
+  RESTAURANT_MANAGER
+}
+
+enum LocationType {
+  STORE
+  WAREHOUSE
+  RESTAURANT
+  PICKUP_POINT
+}
+
+enum RestaurantOrderStatus {
+  PLACED
+  ACCEPTED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+enum FulfillmentType {
+  DELIVERY
+  PICKUP
+  DINE_IN
+}
+
+enum ReservationStatus {
+  REQUESTED
+  CONFIRMED
+  SEATED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum DeliveryMode {
+  SELLER
+  PLATFORM
+  THIRD_PARTY
+}
+
+enum DeliveryJobStatus {
+  CREATED
+  SEARCHING_PARTNER
+  ASSIGNED
+  ACCEPTED
+  AT_PICKUP
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryPartnerStatus {
+  OFFLINE
+  AVAILABLE
+  BUSY
+  SUSPENDED
+}
+
+enum SupplyOrderStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+enum RfqStatus {
+  OPEN
+  QUOTED
+  AWARDED
+  CLOSED
+  CANCELLED
+}
+
+enum BusinessOrderStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  PROCESSING
+  PARTIALLY_SHIPPED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+// ─────────────────────────────────────────────
+// USER & AUTH
+// ─────────────────────────────────────────────
+
+enum AIChatPurpose {
+  SHOPPING
+  CUSTOMER_SUPPORT
+  SELLER_ASSISTANCE
+  RESTAURANT_ASSISTANCE
+  GENERAL
+}
+
+enum SupportCategory {
+  ORDER_STATUS
+  PAYMENT
+  DELIVERY
+  RETURNS_REFUNDS
+  PRODUCT_QUESTION
+  ACCOUNT
+  SELLER_ISSUE
+  RESTAURANT_ISSUE
+  WHOLESALE
+  TECHNICAL
+  OTHER
+}
+
+enum SupportChannel {
+  WEB_CHAT
+  MOBILE_APP
+  EMAIL
+  PHONE
+  WHATSAPP
+  ADMIN
+}
+
+enum SupportResolution {
+  AI_RESOLVED
+  HUMAN_RESOLVED
+  CUSTOMER_CANCELLED
+  UNRESOLVED
+}
+
+enum SupportKnowledgeStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AIChatRole {
+  SYSTEM
+  USER
+  ASSISTANT
+  TOOL
+}
+
+enum AIRecommendationSource {
+  HOME_PAGE
+  PRODUCT_DETAIL
+  SEARCH_RESULTS
+  CART
+  CHECKOUT
+  CHAT_ASSISTANT
+  EMAIL_CAMPAIGN
+  ADMIN_CAMPAIGN
+}
+
+enum AIRecommendationEventType {
+  IMPRESSION
+  CLICK
+  ADD_TO_CART
+  REMOVE_FROM_CART
+  PURCHASE
+  DISMISS
+  SAVE
+}
+
+// Runtime-managed locale registry. Add languages by inserting rows; no enum migration is needed.
+model Locale {
+  code                               String                              @id // BCP 47: en, fr, fr-CA, pt-BR
+  name                               String
+  nativeName                         String
+  isEnabled                          Boolean                             @default(true)
+  isDefault                          Boolean                             @default(false)
+  isRtl                              Boolean                             @default(false)
+  createdAt                          DateTime                            @default(now())
+  updatedAt                          DateTime                            @updatedAt
+  categoryTranslations               CategoryTranslation[]
+  productTranslations                ProductTranslation[]
+  businessTranslations               BusinessProfileTranslation[]
+  locationTranslations               BusinessLocationTranslation[]
+  productOptionTranslations          ProductOptionTranslation[]
+  productOptionValueTranslations     ProductOptionValueTranslation[]
+  productVariantTranslations         ProductVariantTranslation[]
+  restaurantProfileTranslations      RestaurantProfileTranslation[]
+  restaurantMenuCategoryTranslations RestaurantMenuCategoryTranslation[]
+  restaurantMenuItemTranslations     RestaurantMenuItemTranslation[]
+  supportArticles                    SupportKnowledgeArticle[]
+
+  @@map("locales")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  phone      String?
+  avatarUrl  String?
+  locale     String   @default("en") // preferred language: en, fr, es, pt, nl
+  role       Role     @default(CUSTOMER)
+  isVerified Boolean  @default(false)
+  isBanned   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  seller                 Seller?
+  orders                 Order[]
+  addresses              Address[]
+  suggestions            Suggestion[]
+  suggestionVotes        SuggestionVote[]
+  reports                Report[]                  @relation("Reporter")
+  supportTickets         SupportTicket[]           @relation("TicketCustomer")
+  assignedTickets        SupportTicket[]           @relation("TicketAssignee")
+  ticketMessages         TicketMessage[]
+  businessMemberships    BusinessMembership[]
+  deliveryPartner        DeliveryPartner?
+  restaurantOrders       RestaurantOrder[]
+  reservations           Reservation[]
+  supplyOrders           SupplyOrder[]             @relation("RetailerSupplyOrders")
+  businessOrders         BusinessOrder[]           @relation("BuyerBusinessOrders")
+  rfqs                   RequestForQuotation[]
+  aiChatSessions         AIChatSession[]
+  aiRecommendations      AIProductRecommendation[]
+  aiRecommendationEvents AIRecommendationEvent[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// CATEGORIES (3-level hierarchy & Multilingual)
+// ─────────────────────────────────────────────
+
+model Category {
+  id           String                @id @default(cuid())
+  name         String // Primary / Fallback name (English)
+  slug         String                @unique
+  emoji        String?
+  imageUrl     String?
+  level        Int // 1 | 2 | 3
+  parentId     String?
+  parent       Category?             @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Category[]            @relation("CategoryTree")
+  products     Product[]
+  translations CategoryTranslation[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([level, parentId])
+  @@map("categories")
+}
+
+model CategoryTranslation {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale      String
+  language    Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name        String
+  description String?
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+  @@map("category_translations")
+}
+
+// ─────────────────────────────────────────────
+// SELLERS
+// ─────────────────────────────────────────────
+
+model Seller {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeName       String
+  storeSlug       String       @unique
+  bio             String?
+  logoUrl         String?
+  bannerUrl       String?
+  whatsappNumber  String?
+  whatsappEnabled Boolean      @default(true)
+  preferredLocale String       @default("en")
+  isApproved      Boolean      @default(false)
+  isElite         Boolean      @default(false)
+  isVerified      Boolean      @default(false)
+  commissionRate  Float        @default(10.0)
+  payoutMethod    PayoutMethod @default(BANK_TRANSFER)
+  payoutDetails   Json?
+  balance         Decimal      @default(0.00) @db.Decimal(14, 2)
+  latitude        Float?
+  longitude       Float?
+
+  totalSales Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  payouts       Payout[]
+  ledgerEntries LedgerEntry[]
+  businesses    BusinessProfile[]
+
+  @@index([latitude, longitude])
+  @@map("sellers")
+}
+
+// ─────────────────────────────────────────────
+// SELLER VERIFICATION
+// ─────────────────────────────────────────────
+
+model SellerVerification {
+  id         String          @id @default(cuid())
+  businessId String          @unique
+  business   BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Business Identity
+  businessName    String
+  businessType    String // SOLE_TRADER | LLC | CORPORATION | COOPERATIVE | INDIVIDUAL
+  businessCountry String
+  businessCity    String
+  businessAddress String
+
+  // Document Uploads (R2 URLs)
+  nationalIdUrl      String? // ID card / Passport scan
+  businessRegDocUrl  String? // Business registration certificate
+  taxIdUrl           String? // Tax ID / TIN document
+  proofOfAddressUrl  String? // Utility bill or bank statement
+  selfieWithIdUrl    String? // Live selfie holding ID
+  storeFrontPhotoUrl String? // Physical store / warehouse photo
+
+  // Product & Revenue Info
+  productCategories    String[]
+  estimatedMonthlyGmv  String // e.g. "$500-$2000/month"
+  hasPhysicalInventory Boolean  @default(true)
+
+  // Social & References
+  whatsappNumber  String
+  instagramHandle String?
+  facebookPageUrl String?
+  referralCode    String?
+
+  // Admin Review
+  reviewedBy      String?
+  reviewNote      String?
+  rejectionReason String?
+  submittedAt     DateTime  @default(now())
+  reviewedAt      DateTime?
+
+  @@index([businessId])
+  @@map("seller_verifications")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCTS (Multilingual)
+// ─────────────────────────────────────────────
+
+model Product {
+  id                     String                        @id @default(cuid())
+  businessId             String
+  business               BusinessProfile               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  categoryId             String
+  category               Category                      @relation(fields: [categoryId], references: [id])
+  name                   String // Primary / Fallback name (English)
+  slug                   String                        @unique
+  description            String // Primary / Fallback description (English)
+  price                  Decimal                       @db.Decimal(14, 2)
+  comparePrice           Decimal?                      @db.Decimal(14, 2)
+  currency               String                        @default("USD")
+  stock                  Int                           @default(0)
+  isPublished            Boolean                       @default(false)
+  isApproved             Boolean                       @default(false)
+  totalSales             Int                           @default(0)
+  weekSales              Int                           @default(0)
+  deliveryTime           String?
+  tags                   String[]
+  badge                  ProductBadge?
+  images                 ProductImage[]
+  translations           ProductTranslation[]
+  orderItems             OrderItem[]
+  options                ProductOption[]
+  variants               ProductVariant[]
+  relatedFrom            ProductRelation[]             @relation("RelatedProductSource")
+  relatedTo              ProductRelation[]             @relation("RelatedProductTarget")
+  wholesalePrices        WholesalePrice[]
+  rfqItems               RfqItem[]
+  businessOrderItems     BusinessOrderItem[]
+  supplyOrderItems       SupplyOrderItem[]
+  aiEmbedding            Unsupported("vector(1536)")?
+  aiRecommendationItems  AIProductRecommendationItem[]
+  aiRecommendationEvents AIRecommendationEvent[]
+  aiChatMentions         AIChatMessage[]
+  locationInventory      ProductLocationInventory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([businessId])
+  @@index([businessId, isPublished, isApproved, createdAt])
+  @@index([totalSales])
+  @@index([isPublished, isApproved])
+  @@index([isPublished, isApproved, createdAt])
+  @@index([categoryId, isPublished, isApproved, createdAt])
+  @@map("products")
+}
+
+model ProductTranslation {
+  id          String  @id @default(cuid())
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locale      String
+  language    Locale  @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name        String
+  description String
+
+  @@unique([productId, locale])
+  @@index([locale])
+  @@map("product_translations")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  r2Url     String
+  altText   String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("product_images")
+}
+
+// ─────────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────────
+
+// The order's business owns its products and any selected fulfillment location.
+model Order {
+  id                   String                  @id @default(cuid())
+  customerId           String
+  customer             User                    @relation(fields: [customerId], references: [id])
+  businessId           String
+  business             BusinessProfile         @relation(fields: [businessId], references: [id])
+  locationId           String?
+  location             BusinessLocation?       @relation("RetailOrderLocation", fields: [locationId], references: [id], onDelete: SetNull)
+  status               OrderStatus             @default(PENDING)
+  paymentMethod        PaymentMethod
+  paymentStatus        PaymentStatus           @default(UNPAID)
+  lsOrderId            String?
+  lsCheckoutUrl        String?
+  transferRef          String?
+  subtotal             Decimal                 @db.Decimal(14, 2)
+  platformFee          Decimal                 @db.Decimal(14, 2)
+  total                Decimal                 @db.Decimal(14, 2)
+  currency             String                  @default("USD")
+  locale               String                  @default("en")
+  shippingAddress      Json?
+  notes                String?
+  items                OrderItem[]
+  supportTickets       SupportTicket[]
+  recommendationEvents AIRecommendationEvent[] @relation("RetailRecommendationPurchase")
+  ledgerEntries        LedgerEntry[]
+  deliveryJob          DeliveryJob?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([customerId])
+  @@index([businessId, status, createdAt])
+  @@index([locationId, status, createdAt])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String          @id @default(cuid())
+  orderId   String
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product         @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  quantity  Int
+  unitPrice Decimal         @db.Decimal(14, 2)
+  total     Decimal         @db.Decimal(14, 2)
+
+  @@map("order_items")
+}
+
+// ─────────────────────────────────────────────
+// PAYOUTS & LEDGER
+// ─────────────────────────────────────────────
+
+model Payout {
+  id            String        @id @default(cuid())
+  sellerId      String
+  seller        Seller        @relation(fields: [sellerId], references: [id])
+  amount        Decimal       @db.Decimal(14, 2)
+  currency      String        @default("USD")
+  method        PayoutMethod
+  status        PayoutStatus  @default(PENDING)
+  txReference   String?
+  adminNote     String?
+  processedBy   String?
+  requestedAt   DateTime      @default(now())
+  processedAt   DateTime?
+  ledgerEntries LedgerEntry[]
+
+  @@index([sellerId, status])
+  @@map("payouts")
+}
+
+model LedgerEntry {
+  id          String     @id @default(cuid())
+  sellerId    String
+  seller      Seller     @relation(fields: [sellerId], references: [id])
+  orderId     String?
+  order       Order?     @relation(fields: [orderId], references: [id])
+  payoutId    String?
+  payout      Payout?    @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  type        LedgerType
+  amount      Decimal    @db.Decimal(14, 2)
+  balance     Decimal    @db.Decimal(14, 2)
+  description String
+  createdAt   DateTime   @default(now())
+
+  @@index([sellerId])
+  @@map("ledger_entries")
+}
+
+// ─────────────────────────────────────────────
+// SUGGESTIONS
+// ─────────────────────────────────────────────
+
+model Suggestion {
+  id        String             @id @default(cuid())
+  userId    String?
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  category  SuggestionCategory
+  title     String
+  content   String
+  status    SuggestionStatus   @default(NEW)
+  upvotes   Int                @default(0)
+  votes     SuggestionVote[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@map("suggestions")
+}
+
+model SuggestionVote {
+  id           String     @id @default(cuid())
+  suggestionId String
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([suggestionId, userId])
+  @@map("suggestion_votes")
+}
+
+// ─────────────────────────────────────────────
+// REPORTS / COMPLAINTS
+// ─────────────────────────────────────────────
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  reporter       User         @relation("Reporter", fields: [reporterId], references: [id])
+  reportType     ReportType
+  targetId       String
+  targetType     TargetType
+  reason         ReportReason
+  description    String
+  evidenceUrls   String[]
+  status         ReportStatus @default(OPEN)
+  assignedTo     String?
+  resolutionNote String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status])
+  @@index([reporterId])
+  @@map("reports")
+}
+
+// ─────────────────────────────────────────────
+// SUPPORT TICKETS
+// ─────────────────────────────────────────────
+
+model SupportTicket {
+  id                   String             @id @default(cuid())
+  customerId           String
+  customer             User               @relation("TicketCustomer", fields: [customerId], references: [id])
+  assignedTo           String?
+  assignee             User?              @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  orderId              String?
+  order                Order?             @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  subject              String
+  status               TicketStatus       @default(OPEN)
+  priority             TicketPriority     @default(NORMAL)
+  messages             TicketMessage[]
+  aiSessions           AIChatSession[]
+  category             SupportCategory    @default(OTHER)
+  channel              SupportChannel     @default(WEB_CHAT)
+  resolution           SupportResolution?
+  aiHandled            Boolean            @default(false)
+  escalatedAt          DateTime?
+  firstResponseAt      DateTime?
+  resolvedAt           DateTime?
+  customerSatisfaction Int?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([status, assignedTo])
+  @@index([category, createdAt])
+  @@index([customerId, createdAt])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id             String        @id @default(cuid())
+  ticketId       String
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User          @relation(fields: [senderId], references: [id])
+  content        String
+  isAI           Boolean       @default(false)
+  aiModel        String?
+  confidence     Float?
+  isInternalNote Boolean       @default(false)
+  attachments    Json?
+  createdAt      DateTime      @default(now())
+
+  @@map("ticket_messages")
+}
+
+// ─────────────────────────────────────────────
+// ADDRESS
+// ─────────────────────────────────────────────
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String?
+  fullName  String
+  phone     String
+  street    String
+  city      String
+  country   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("addresses")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT OPTIONS, VARIANTS & RELATED PRODUCTS
+// ─────────────────────────────────────────────
+
+model ProductOption {
+  id           String                     @id @default(cuid())
+  productId    String
+  product      Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name         String // e.g. Size, Colour
+  sortOrder    Int                        @default(0)
+  values       ProductOptionValue[]
+  translations ProductOptionTranslation[]
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+
+  @@unique([productId, name])
+  @@index([productId, sortOrder])
+  @@map("product_options")
+}
+
+model ProductOptionTranslation {
+  id       String        @id @default(cuid())
+  optionId String
+  option   ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  locale   String
+  language Locale        @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name     String
+
+  @@unique([optionId, locale])
+  @@map("product_option_translations")
+}
+
+model ProductOptionValue {
+  id           String                          @id @default(cuid())
+  optionId     String
+  option       ProductOption                   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  value        String // e.g. XL, Red
+  sortOrder    Int                             @default(0)
+  variants     ProductVariantValue[]
+  translations ProductOptionValueTranslation[]
+
+  @@unique([optionId, value])
+  @@index([optionId, sortOrder])
+  @@map("product_option_values")
+}
+
+model ProductOptionValueTranslation {
+  id            String             @id @default(cuid())
+  optionValueId String
+  optionValue   ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+  locale        String
+  language      Locale             @relation(fields: [locale], references: [code], onDelete: Restrict)
+  value         String
+
+  @@unique([optionValueId, locale])
+  @@map("product_option_value_translations")
+}
+
+model ProductVariant {
+  id                String                            @id @default(cuid())
+  productId         String
+  product           Product                           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String?                           @unique
+  barcode           String?
+  name              String?
+  price             Decimal?                          @db.Decimal(14, 2)
+  comparePrice      Decimal?                          @db.Decimal(14, 2)
+  stock             Int                               @default(0)
+  isAvailable       Boolean                           @default(true)
+  imageUrl          String?
+  optionValues      ProductVariantValue[]
+  orderItems        OrderItem[]
+  locationInventory ProductVariantLocationInventory[]
+  translations      ProductVariantTranslation[]
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+
+  @@index([productId, isAvailable])
+  @@map("product_variants")
+}
+
+// Enforce with application validation or SQL trigger that optionValue.option.productId
+// equals variant.productId; Prisma relations alone cannot express this invariant.
+model ProductVariantTranslation {
+  id        String         @id @default(cuid())
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  locale    String
+  language  Locale         @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name      String
+
+  @@unique([variantId, locale])
+  @@map("product_variant_translations")
+}
+
+model ProductVariantValue {
+  id            String             @id @default(cuid())
+  variantId     String
+  variant       ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValueId String
+  optionValue   ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionValueId])
+  @@index([optionValueId])
+  @@map("product_variant_values")
+}
+
+// Add a PostgreSQL CHECK constraint: sourceProductId <> targetProductId.
+model ProductRelation {
+  id              String   @id @default(cuid())
+  sourceProductId String
+  sourceProduct   Product  @relation("RelatedProductSource", fields: [sourceProductId], references: [id], onDelete: Cascade)
+  targetProductId String
+  targetProduct   Product  @relation("RelatedProductTarget", fields: [targetProductId], references: [id], onDelete: Cascade)
+  relationType    String   @default("RELATED") // RELATED, UPSELL, CROSS_SELL
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([sourceProductId, targetProductId, relationType])
+  @@index([sourceProductId, relationType, sortOrder])
+  @@map("product_relations")
+}
+
+// ─────────────────────────────────────────────
+// SHARED BUSINESS IDENTITY & GEOLOCATED LOCATIONS
+// ─────────────────────────────────────────────
+
+model BusinessProfile {
+  id                      String                       @id @default(cuid())
+  sellerId                String
+  seller                  Seller                       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  businessName            String
+  slug                    String                       @unique
+  description             String?                      @db.Text
+  capabilities            BusinessCapability[]
+  registrationNumber      String?
+  taxNumber               String?
+  country                 String
+  city                    String
+  address                 String?
+  phone                   String?
+  email                   String?
+  website                 String?
+  logoUrl                 String?
+  bannerUrl               String?
+  isActive                Boolean                      @default(true)
+  isVerified              Boolean                      @default(false)
+  verificationStatus      VerificationStatus           @default(UNVERIFIED)
+  verificationApplication SellerVerification?
+  memberships             BusinessMembership[]
+  locations               BusinessLocation[]
+  products                Product[]
+  translations            BusinessProfileTranslation[]
+  orders                  Order[]
+  restaurantProfile       RestaurantProfile?
+  supplierProfile         SupplierProfile?
+  retailerLinksAsSupplier SupplierRetailer[]           @relation("SupplierBusiness")
+  retailerLinksAsRetailer SupplierRetailer[]           @relation("RetailerBusiness")
+  wholesalePrices         WholesalePrice[]
+  rfqs                    RequestForQuotation[]
+  quotations              SupplierQuotation[]
+  supplyOrders            SupplyOrder[]                @relation("RetailerSupplyBusiness")
+  suppliedOrders          SupplyOrder[]                @relation("SupplierSupplyBusiness")
+  buyerOrders             BusinessOrder[]              @relation("BuyerBusinessProfile")
+  supplierOrders          BusinessOrder[]              @relation("SupplierBusinessProfile")
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+
+  @@index([sellerId, isActive])
+  @@index([country, city, isActive])
+  @@map("business_profiles")
+}
+
+model BusinessProfileTranslation {
+  id           String          @id @default(cuid())
+  businessId   String
+  business     BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  locale       String
+  language     Locale          @relation(fields: [locale], references: [code], onDelete: Restrict)
+  businessName String
+  description  String?         @db.Text
+
+  @@unique([businessId, locale])
+  @@index([locale])
+  @@map("business_profile_translations")
+}
+
+// Create an OWNER membership for the seller account owner when creating each business.
+model BusinessMembership {
+  id          String                       @id @default(cuid())
+  businessId  String
+  business    BusinessProfile              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        BusinessMemberRole           @default(STAFF)
+  isActive    Boolean                      @default(true)
+  locations   BusinessLocationMembership[]
+  invitedById String?
+  joinedAt    DateTime                     @default(now())
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+
+  @@unique([businessId, userId])
+  @@index([userId, isActive])
+  @@index([businessId, role, isActive])
+  @@map("business_memberships")
+}
+
+model BusinessLocation {
+  id           String          @id @default(cuid())
+  businessId   String
+  business     BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name         String
+  code         String?
+  locationType LocationType    @default(STORE)
+  address      String
+  city         String
+  region       String?
+  postalCode   String?
+  country      String
+  latitude     Float
+  longitude    Float
+
+  deliveryRadiusKm  Float?
+  offersDelivery    Boolean                           @default(false)
+  offersPickup      Boolean                           @default(false)
+  isPrimary         Boolean                           @default(false)
+  isActive          Boolean                           @default(true)
+  openingHours      Json?
+  phone             String?
+  email             String?
+  memberships       BusinessLocationMembership[]
+  translations      BusinessLocationTranslation[]
+  inventory         ProductLocationInventory[]
+  variantInventory  ProductVariantLocationInventory[]
+  retailOrders      Order[]                           @relation("RetailOrderLocation")
+  restaurantOrders  RestaurantOrder[]
+  reservations      Reservation[]
+  menuItemSettings  RestaurantMenuItemLocation[]
+  supplierShipments SupplyOrder[]                     @relation("SupplierSupplyLocation")
+  retailerReceipts  SupplyOrder[]                     @relation("RetailerSupplyLocation")
+  buyerOrders       BusinessOrder[]                   @relation("BuyerBusinessOrderLocation")
+  supplierOrders    BusinessOrder[]                   @relation("SupplierBusinessOrderLocation")
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+
+  @@unique([businessId, code])
+  @@index([businessId, locationType, isActive])
+  @@index([latitude, longitude])
+  @@map("business_locations")
+}
+
+model BusinessLocationTranslation {
+  id         String           @id @default(cuid())
+  locationId String
+  location   BusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locale     String
+  language   Locale           @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name       String
+  address    String?
+  city       String?
+  region     String?
+
+  @@unique([locationId, locale])
+  @@index([locale])
+  @@map("business_location_translations")
+}
+
+model BusinessLocationMembership {
+  id           String             @id @default(cuid())
+  membershipId String
+  membership   BusinessMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  locationId   String
+  location     BusinessLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+
+  @@unique([membershipId, locationId])
+  @@index([locationId])
+  @@map("business_location_memberships")
+}
+
+// SQL/application invariant: product.businessId must equal location.businessId.
+model ProductLocationInventory {
+  id          String           @id @default(cuid())
+  locationId  String
+  location    BusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stock       Int              @default(0)
+  price       Decimal?         @db.Decimal(14, 2)
+  isAvailable Boolean          @default(true)
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([locationId, productId])
+  @@index([productId, isAvailable])
+  @@map("product_location_inventory")
+}
+
+// SQL/application invariant: variant.product.businessId must equal location.businessId.
+model ProductVariantLocationInventory {
+  id          String           @id @default(cuid())
+  locationId  String
+  location    BusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  variantId   String
+  variant     ProductVariant   @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  stock       Int              @default(0)
+  isAvailable Boolean          @default(true)
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([locationId, variantId])
+  @@index([variantId, isAvailable])
+  @@map("product_variant_location_inventory")
+}
+
+// ─────────────────────────────────────────────
+// RESTAURANTS, MENUS, ORDERS & RESERVATIONS
+// ─────────────────────────────────────────────
+
+model RestaurantProfile {
+  id                  String                         @id @default(cuid())
+  businessId          String                         @unique
+  business            BusinessProfile                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  cuisineTypes        String[]
+  description         String?
+  averagePrepMinutes  Int                            @default(30)
+  acceptsOrders       Boolean                        @default(true)
+  acceptsReservations Boolean                        @default(true)
+  minimumOrder        Decimal?                       @db.Decimal(14, 2)
+  menuCategories      RestaurantMenuCategory[]
+  translations        RestaurantProfileTranslation[]
+  orders              RestaurantOrder[]
+  reservations        Reservation[]
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  @@map("restaurant_profiles")
+}
+
+model RestaurantProfileTranslation {
+  id           String            @id @default(cuid())
+  restaurantId String
+  restaurant   RestaurantProfile @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  locale       String
+  language     Locale            @relation(fields: [locale], references: [code], onDelete: Restrict)
+  description  String?
+
+  @@unique([restaurantId, locale])
+  @@map("restaurant_profile_translations")
+}
+
+model RestaurantMenuCategory {
+  id           String                              @id @default(cuid())
+  restaurantId String
+  restaurant   RestaurantProfile                   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  sortOrder    Int                                 @default(0)
+  isActive     Boolean                             @default(true)
+  translations RestaurantMenuCategoryTranslation[]
+  items        RestaurantMenuItem[]
+  createdAt    DateTime                            @default(now())
+
+  @@index([restaurantId, isActive, sortOrder])
+  @@map("restaurant_menu_categories")
+}
+
+model RestaurantMenuCategoryTranslation {
+  id         String                 @id @default(cuid())
+  categoryId String
+  category   RestaurantMenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String
+  language   Locale                 @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name       String
+
+  @@unique([categoryId, locale])
+  @@map("restaurant_menu_category_translations")
+}
+
+model RestaurantMenuItem {
+  id               String                          @id @default(cuid())
+  categoryId       String
+  category         RestaurantMenuCategory          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  price            Decimal                         @db.Decimal(14, 2)
+  currency         String                          @default("USD")
+  imageUrl         String?
+  isAvailable      Boolean                         @default(true)
+  isVegetarian     Boolean                         @default(false)
+  isVegan          Boolean                         @default(false)
+  allergens        String[]
+  translations     RestaurantMenuItemTranslation[]
+  orderItems       RestaurantOrderItem[]
+  locationSettings RestaurantMenuItemLocation[]
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  @@index([categoryId, isAvailable])
+  @@map("restaurant_menu_items")
+}
+
+// SQL/application invariant: menuItem.category.restaurant.businessId must equal location.businessId.
+model RestaurantMenuItemLocation {
+  id          String             @id @default(cuid())
+  menuItemId  String
+  menuItem    RestaurantMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    BusinessLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  price       Decimal?           @db.Decimal(14, 2)
+  isAvailable Boolean            @default(true)
+  prepMinutes Int?
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([menuItemId, locationId])
+  @@index([locationId, isAvailable])
+  @@map("restaurant_menu_item_locations")
+}
+
+model RestaurantMenuItemTranslation {
+  id          String             @id @default(cuid())
+  menuItemId  String
+  menuItem    RestaurantMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  locale      String
+  language    Locale             @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name        String
+  description String?
+
+  @@unique([menuItemId, locale])
+  @@map("restaurant_menu_item_translations")
+}
+
+// SQL/application invariant: location.businessId must equal restaurant.businessId.
+model RestaurantOrder {
+  id              String                @id @default(cuid())
+  restaurantId    String
+  restaurant      RestaurantProfile     @relation(fields: [restaurantId], references: [id])
+  locationId      String
+  location        BusinessLocation      @relation(fields: [locationId], references: [id])
+  customerId      String
+  customer        User                  @relation(fields: [customerId], references: [id])
+  status          RestaurantOrderStatus @default(PLACED)
+  fulfillmentType FulfillmentType       @default(DELIVERY)
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus         @default(UNPAID)
+  subtotal        Decimal               @db.Decimal(14, 2)
+  deliveryFee     Decimal               @default(0) @db.Decimal(14, 2)
+  platformFee     Decimal               @default(0) @db.Decimal(14, 2)
+  total           Decimal               @db.Decimal(14, 2)
+  currency        String                @default("USD")
+  locale          String                @default("en")
+  deliveryAddress Json?
+  requestedFor    DateTime?
+  notes           String?
+  items           RestaurantOrderItem[]
+  deliveryJob     DeliveryJob?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([restaurantId, status, createdAt])
+  @@index([locationId, status, createdAt])
+  @@index([customerId, createdAt])
+  @@map("restaurant_orders")
+}
+
+model RestaurantOrderItem {
+  id         String              @id @default(cuid())
+  orderId    String
+  order      RestaurantOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String?
+  menuItem   RestaurantMenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  itemName   String
+  quantity   Int
+  unitPrice  Decimal             @db.Decimal(14, 2)
+  total      Decimal             @db.Decimal(14, 2)
+  options    Json?
+
+  @@map("restaurant_order_items")
+}
+
+// SQL/application invariant: location.businessId must equal restaurant.businessId.
+model Reservation {
+  id             String            @id @default(cuid())
+  restaurantId   String
+  restaurant     RestaurantProfile @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       BusinessLocation  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       User              @relation(fields: [customerId], references: [id])
+  startsAt       DateTime
+  endsAt         DateTime?
+  partySize      Int
+  status         ReservationStatus @default(REQUESTED)
+  customerName   String
+  phone          String
+  specialRequest String?
+  internalNote   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([restaurantId, startsAt, status])
+  @@index([locationId, startsAt, status])
+  @@index([customerId, startsAt])
+  @@map("reservations")
+}
+
+// ─────────────────────────────────────────────
+// HYBRID DELIVERY: SELLER OR WHATSYM PARTNER
+// ─────────────────────────────────────────────
+
+model DeliveryPartner {
+  id               String                @id @default(cuid())
+  userId           String                @unique
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           DeliveryPartnerStatus @default(OFFLINE)
+  vehicleType      String?
+  vehiclePlate     String?
+  isVerified       Boolean               @default(false)
+  currentLatitude  Float?
+  currentLongitude Float?
+  jobs             DeliveryJob[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([status, isVerified])
+  @@map("delivery_partners")
+}
+
+// Add a PostgreSQL CHECK constraint in the migration requiring exactly one of
+// orderId, restaurantOrderId, or businessOrderId to be non-NULL.
+model DeliveryJob {
+  id                String                  @id @default(cuid())
+  orderId           String?                 @unique
+  order             Order?                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  restaurantOrderId String?                 @unique
+  restaurantOrder   RestaurantOrder?        @relation(fields: [restaurantOrderId], references: [id], onDelete: Cascade)
+  businessOrderId   String?                 @unique
+  businessOrder     BusinessOrder?          @relation(fields: [businessOrderId], references: [id], onDelete: Cascade)
+  partnerId         String?
+  partner           DeliveryPartner?        @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  mode              DeliveryMode            @default(PLATFORM)
+  status            DeliveryJobStatus       @default(CREATED)
+  pickupAddress     Json
+  dropoffAddress    Json
+  distanceKm        Float?
+  estimatedMinutes  Int?
+  deliveryFee       Decimal?                @db.Decimal(14, 2)
+  assignedAt        DateTime?
+  pickedUpAt        DateTime?
+  deliveredAt       DateTime?
+  failureReason     String?
+  statusHistory     DeliveryStatusHistory[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([partnerId, status])
+  @@index([status, createdAt])
+  @@map("delivery_jobs")
+}
+
+model DeliveryStatusHistory {
+  id            String            @id @default(cuid())
+  deliveryJobId String
+  deliveryJob   DeliveryJob       @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  status        DeliveryJobStatus
+  note          String?
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime          @default(now())
+
+  @@index([deliveryJobId, createdAt])
+  @@map("delivery_status_history")
+}
+
+// ─────────────────────────────────────────────
+// SUPPLIER ↔ RETAILER NETWORK & PROCUREMENT
+// ─────────────────────────────────────────────
+
+model SupplierProfile {
+  id                String          @id @default(cuid())
+  businessId        String          @unique
+  business          BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  companyName       String
+  description       String?
+  minimumOrderValue Decimal?        @db.Decimal(14, 2)
+  leadTimeDays      Int             @default(3)
+  supplyOrders      SupplyOrder[]   @relation("SupplierSupplyProfile")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("supplier_profiles")
+}
+
+// Add a PostgreSQL CHECK constraint: supplierId <> retailerId.
+model SupplierRetailer {
+  id         String          @id @default(cuid())
+  supplierId String
+  supplier   BusinessProfile @relation("SupplierBusiness", fields: [supplierId], references: [id], onDelete: Cascade)
+  retailerId String
+  retailer   BusinessProfile @relation("RetailerBusiness", fields: [retailerId], references: [id], onDelete: Cascade)
+  isApproved Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+
+  @@unique([supplierId, retailerId])
+  @@index([retailerId, isApproved])
+  @@map("supplier_retailers")
+}
+
+model WholesalePrice {
+  id          String          @id @default(cuid())
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  businessId  String
+  business    BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  maxQuantity Int?
+  unitPrice   Decimal         @db.Decimal(14, 2)
+  currency    String          @default("USD")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([productId, minQuantity])
+  @@index([businessId])
+  @@map("wholesale_prices")
+}
+
+model SupplyOrder {
+  id                 String            @id @default(cuid())
+  retailerUserId     String
+  retailerUser       User              @relation("RetailerSupplyOrders", fields: [retailerUserId], references: [id])
+  retailerBusinessId String?
+  retailerBusiness   BusinessProfile?  @relation("RetailerSupplyBusiness", fields: [retailerBusinessId], references: [id])
+  supplierBusinessId String
+  supplierBusiness   BusinessProfile   @relation("SupplierSupplyBusiness", fields: [supplierBusinessId], references: [id])
+  supplierProfileId  String?
+  supplierProfile    SupplierProfile?  @relation("SupplierSupplyProfile", fields: [supplierProfileId], references: [id])
+  retailerLocationId String?
+  retailerLocation   BusinessLocation? @relation("RetailerSupplyLocation", fields: [retailerLocationId], references: [id], onDelete: SetNull)
+  supplierLocationId String?
+  supplierLocation   BusinessLocation? @relation("SupplierSupplyLocation", fields: [supplierLocationId], references: [id], onDelete: SetNull)
+  status             SupplyOrderStatus @default(DRAFT)
+  subtotal           Decimal           @db.Decimal(14, 2)
+  total              Decimal           @db.Decimal(14, 2)
+  currency           String            @default("USD")
+  notes              String?
+  items              SupplyOrderItem[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([supplierBusinessId, status])
+  @@index([retailerUserId, createdAt])
+  @@index([retailerLocationId])
+  @@index([supplierLocationId])
+  @@map("supply_orders")
+}
+
+model SupplyOrderItem {
+  id            String      @id @default(cuid())
+  supplyOrderId String
+  supplyOrder   SupplyOrder @relation(fields: [supplyOrderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  quantity      Int
+  unitPrice     Decimal     @db.Decimal(14, 2)
+  total         Decimal     @db.Decimal(14, 2)
+
+  @@map("supply_order_items")
+}
+
+// ─────────────────────────────────────────────
+// B2B WHOLESALE RFQ & ORDERS
+// ─────────────────────────────────────────────
+
+model RequestForQuotation {
+  id          String              @id @default(cuid())
+  businessId  String
+  business    BusinessProfile     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User                @relation(fields: [createdById], references: [id])
+  title       String
+  description String?
+  status      RfqStatus           @default(OPEN)
+  neededBy    DateTime?
+  items       RfqItem[]
+  quotations  SupplierQuotation[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([businessId, status, createdAt])
+  @@map("request_for_quotations")
+}
+
+model RfqItem {
+  id             String                  @id @default(cuid())
+  rfqId          String
+  rfq            RequestForQuotation     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product?                @relation(fields: [productId], references: [id], onDelete: SetNull)
+  description    String
+  quantity       Int
+  unit           String                  @default("unit")
+  quotationItems SupplierQuotationItem[]
+
+  @@map("rfq_items")
+}
+
+model SupplierQuotation {
+  id         String                  @id @default(cuid())
+  rfqId      String
+  rfq        RequestForQuotation     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier   BusinessProfile         @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  message    String?
+  validUntil DateTime?
+  items      SupplierQuotationItem[]
+  createdAt  DateTime                @default(now())
+
+  @@unique([rfqId, supplierId])
+  @@index([supplierId, createdAt])
+  @@map("supplier_quotations")
+}
+
+model SupplierQuotationItem {
+  id          String            @id @default(cuid())
+  quotationId String
+  quotation   SupplierQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  rfqItemId   String
+  rfqItem     RfqItem           @relation(fields: [rfqItemId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int
+  unitPrice   Decimal           @db.Decimal(14, 2)
+  total       Decimal           @db.Decimal(14, 2)
+
+  @@unique([quotationId, rfqItemId])
+  @@map("supplier_quotation_items")
+}
+
+model BusinessOrder {
+  id                   String                  @id @default(cuid())
+  buyerUserId          String
+  buyerUser            User                    @relation("BuyerBusinessOrders", fields: [buyerUserId], references: [id])
+  buyerBusinessId      String
+  buyerBusiness        BusinessProfile         @relation("BuyerBusinessProfile", fields: [buyerBusinessId], references: [id])
+  supplierBusinessId   String
+  supplierBusiness     BusinessProfile         @relation("SupplierBusinessProfile", fields: [supplierBusinessId], references: [id])
+  buyerLocationId      String?
+  buyerLocation        BusinessLocation?       @relation("BuyerBusinessOrderLocation", fields: [buyerLocationId], references: [id], onDelete: SetNull)
+  supplierLocationId   String?
+  supplierLocation     BusinessLocation?       @relation("SupplierBusinessOrderLocation", fields: [supplierLocationId], references: [id], onDelete: SetNull)
+  status               BusinessOrderStatus     @default(PENDING)
+  subtotal             Decimal                 @db.Decimal(14, 2)
+  deliveryFee          Decimal                 @default(0) @db.Decimal(14, 2)
+  total                Decimal                 @db.Decimal(14, 2)
+  currency             String                  @default("USD")
+  paymentStatus        PaymentStatus           @default(UNPAID)
+  notes                String?
+  items                BusinessOrderItem[]
+  deliveryJob          DeliveryJob?
+  recommendationEvents AIRecommendationEvent[] @relation("B2BRecommendationPurchase")
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([buyerBusinessId, status])
+  @@index([supplierBusinessId, status])
+  @@index([buyerLocationId])
+  @@index([supplierLocationId])
+  @@map("business_orders")
+}
+
+model BusinessOrderItem {
+  id        String        @id @default(cuid())
+  orderId   String
+  order     BusinessOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal       @db.Decimal(14, 2)
+  total     Decimal       @db.Decimal(14, 2)
+
+  @@map("business_order_items")
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMER SUPPORT KNOWLEDGE BASE (RAG)
+// Human-reviewed articles and locale-specific chunks for grounded AI answers.
+// ─────────────────────────────────────────────
+
+model SupportKnowledgeArticle {
+  id          String                  @id @default(cuid())
+  title       String
+  slug        String                  @unique
+  summary     String?                 @db.Text
+  locale      String                  @default("en")
+  language    Locale                  @relation(fields: [locale], references: [code], onDelete: Restrict)
+  category    SupportCategory         @default(OTHER)
+  status      SupportKnowledgeStatus  @default(DRAFT)
+  version     Int                     @default(1)
+  sourceUrl   String?
+  reviewedBy  String?
+  publishedAt DateTime?
+  chunks      SupportKnowledgeChunk[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([status, locale, category])
+  @@map("support_knowledge_articles")
+}
+
+model SupportKnowledgeChunk {
+  id        String                       @id @default(cuid())
+  articleId String
+  article   SupportKnowledgeArticle      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  chunkNo   Int
+  content   String                       @db.Text
+  embedding Unsupported("vector(1536)")?
+  metadata  Json?
+  createdAt DateTime                     @default(now())
+
+  @@unique([articleId, chunkNo])
+  @@index([articleId])
+  @@map("support_knowledge_chunks")
+}
+
+// ─────────────────────────────────────────────
+// AI ASSISTANT, CHAT HISTORY & PRODUCT DISCOVERY
+// These tables store conversation context and recommendation analytics.
+// Provider credentials belong in server environment variables, never here.
+// ─────────────────────────────────────────────
+
+model AIChatSession {
+  id              String                    @id @default(cuid())
+  userId          String?
+  user            User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sessionKey      String?                   @unique // anonymous/guest session identifier
+  purpose         AIChatPurpose             @default(SHOPPING)
+  supportTicketId String?
+  supportTicket   SupportTicket?            @relation(fields: [supportTicketId], references: [id], onDelete: SetNull)
+  title           String?
+  locale          String                    @default("en")
+  context         Json? // cart, current page, selected store, and other safe context
+  messages        AIChatMessage[]
+  recommendations AIProductRecommendation[]
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([locale, updatedAt])
+  @@index([purpose, updatedAt])
+  @@index([supportTicketId])
+  @@map("ai_chat_sessions")
+}
+
+model AIChatMessage {
+  id                  String        @id @default(cuid())
+  sessionId           String
+  session             AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role                AIChatRole
+  content             String        @db.Text
+  locale              String?
+  referencedProductId String?
+  referencedProduct   Product?      @relation(fields: [referencedProductId], references: [id], onDelete: SetNull)
+  toolName            String?
+  toolCallId          String?
+  metadata            Json? // structured tool results; avoid storing secrets/payment data
+  promptTokens        Int?
+  completionTokens    Int?
+  feedbackRating      Int? // optional user rating of AI response
+  feedbackText        String?       @db.Text
+  safetyFlag          String?
+  model               String?
+  createdAt           DateTime      @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([referencedProductId])
+  @@index([role, createdAt])
+  @@map("ai_chat_messages")
+}
+
+model AIProductRecommendation {
+  id        String                        @id @default(cuid())
+  userId    String?
+  user      User?                         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sessionId String?
+  session   AIChatSession?                @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  source    AIRecommendationSource
+  locale    String                        @default("en")
+  algorithm String? // e.g. hybrid-v1, collaborative-v2
+  context   Json? // non-sensitive features used for ranking
+  items     AIProductRecommendationItem[]
+  events    AIRecommendationEvent[]
+  expiresAt DateTime?
+  createdAt DateTime                      @default(now())
+
+  @@index([userId, source, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([source, createdAt])
+  @@index([expiresAt])
+  @@map("ai_product_recommendations")
+}
+
+model AIProductRecommendationItem {
+  id               String                  @id @default(cuid())
+  recommendationId String
+  recommendation   AIProductRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rank             Int
+  score            Float? // normalized relevance score, not a user-facing rating
+  reasonCode       String? // e.g. SIMILAR_ITEMS, POPULAR_IN_CATEGORY
+  explanation      String?                 @db.Text // localized explanation shown to customer
+  createdAt        DateTime                @default(now())
+
+  @@unique([recommendationId, productId])
+  @@unique([recommendationId, rank])
+  @@index([productId, createdAt])
+  @@map("ai_product_recommendation_items")
+}
+
+model AIRecommendationEvent {
+  id               String                    @id @default(cuid())
+  recommendationId String?
+  recommendation   AIProductRecommendation?  @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  productId        String
+  product          Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sessionKey       String? // anonymous analytics key, no raw device fingerprint
+  eventType        AIRecommendationEventType
+  source           AIRecommendationSource
+  position         Int?
+  orderId          String?
+  order            Order?                    @relation("RetailRecommendationPurchase", fields: [orderId], references: [id], onDelete: SetNull)
+  businessOrderId  String?
+  businessOrder    BusinessOrder?            @relation("B2BRecommendationPurchase", fields: [businessOrderId], references: [id], onDelete: SetNull)
+  metadata         Json?
+  createdAt        DateTime                  @default(now())
+
+  @@index([productId, eventType, createdAt])
+  @@index([userId, eventType, createdAt])
+  @@index([recommendationId, eventType])
+  @@index([sessionKey, createdAt])
+  @@map("ai_recommendation_events")
+}
